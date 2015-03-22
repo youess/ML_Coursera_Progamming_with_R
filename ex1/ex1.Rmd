@@ -198,4 +198,11 @@ par(op)
 
 normalEqn(X, y)
 
+# 预测新的值时，应注意将新的点的X进行归一化，减去mu并除以std，然后才能用theta进行计算得到y
+
+s <- c(5, 3000)
+c(1, (s - mu)/std) %*% normalEqn(X, y)
+
 ```
+
+
