@@ -218,13 +218,6 @@ lapply(resAll, function(x) x$theta)
 
 ```r
 require("RColorBrewer")
-```
-
-```
-Loading required package: RColorBrewer
-```
-
-```r
 n <- length(alpha.vec)
 pal <- brewer.pal(n, "Set1")
 

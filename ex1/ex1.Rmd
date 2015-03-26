@@ -166,25 +166,25 @@ pal <- brewer.pal(n, "Set1")
 bottom <- left <- top <- 0
 right <- 2
 op <- par(mar = par()$mar + c(bottom, left, top, right), bty = "l")
-plot(1:iter.num, resAll[[1]]$cost, type="l", col = pal[1], ylim = c(1e-3, 6e10), lwd = 2, lty=1, main = "Costs at different learning rate", ylab = 'Cost', xlab = "learning rate")
+plot(1:iter.num, resAll[[1]]$costs, type="l", col = pal[1], ylim = c(1e-3, 6e10), lwd = 2, lty=1, main = "Costs at different learning rate", ylab = 'Cost', xlab = "learning rate")
 
-#mtext(side=4, at=resAll[[1]]$cost[iter.num], text=paste("alpha =", alpha[1]), line=.3, las=2, col = pal[1])
-text(5, resAll[[1]]$cost[5], labels=paste("alpha =", alpha.vec[1]), col = pal[1], pos=3)
+#mtext(side=4, at=resAll[[1]]$costs[iter.num], text=paste("alpha =", alpha[1]), line=.3, las=2, col = pal[1])
+text(5, resAll[[1]]$costs[5], labels=paste("alpha =", alpha.vec[1]), col = pal[1], pos=3)
 
 for (i in 2:n){
-    lines(1:iter.num, resAll[[i]]$cost, col=pal[i], lwd=2)
-#    mtext(side=4, at=resAll[[i]]$cost[iter.num], text=paste("alpha =", alpha[i]), line=.3, las=2, col=pal[i])
-    text(5, resAll[[i]]$cost[5], labels=paste("alpha =", alpha.vec[i]), col = pal[i], pos=3)
+    lines(1:iter.num, resAll[[i]]$costs, col=pal[i], lwd=2)
+#    mtext(side=4, at=resAll[[i]]$costs[iter.num], text=paste("alpha =", alpha[i]), line=.3, las=2, col=pal[i])
+    text(5, resAll[[i]]$costs[5], labels=paste("alpha =", alpha.vec[i]), col = pal[i], pos=3)
 }
 par(op)
 
 # plot(1:iter.num,
-#      resAll[[1]]$cost,
+#      resAll[[1]]$costs,
 #      type="l",
 #      col=pal[1],
 #      ylim = c(1e-5, 7e10))
 # for (i in 2:n){
-#     points(1:iter.num, resAll[[i]]$cost, type="l", col=pal[i])
+#     points(1:iter.num, resAll[[i]]$costs, type="l", col=pal[i])
 # }
 #
 # legend("topright", lty = 1,
