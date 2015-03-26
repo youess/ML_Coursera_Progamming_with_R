@@ -1,0 +1,228 @@
+
+```{r, echo=F, message=F}
+require("knitr")
+opts_chunk$set(comment=NA, out.format="html")
+# knit_theme$get()  # list all avaliable theme
+knit_theme$set("matrix")
+```
+
+## Logistic regression
+
+
+```{r}
+
+# plot the data
+dat <- read.table("./mlclass-ex2/ex2data1.txt", sep=",")
+
+pos <- dat[, 3] == 1
+bottom <- left <- top <- 0
+right <- 2
+op <- par(mar = par()$mar + c(bottom, left, top, right), bty = "l")
+plot(dat[pos, 1], dat[pos, 2], col = "black", pch=3, xlim=c(30, 100), ylim=c(30, 100), xlab="Exam 1 score", ylab="Exam 2 score", lwd=2)
+points(dat[!pos, 1], dat[!pos, 2], bg="yellow", pch=21, lwd=2)
+legend("topright", legend=c("Admitted", "Not admitted"), pt.bg=c("black", "yellow"), pch=c(3, 21))
+par(op)
+
+```
+
+## sigmoid function
+
+```{r}
+
+sigmoid <- function(z){
+
+    1 / (1 + exp(-z))
+
+}
+
+sigmoid(10000)
+sigmoid(-10000)
+sigmoid(0)
+m <- matrix(1:4, 2, 2)
+sigmoid(m)
+
+```
+
+## cost function in logistic regression
+
+```{r}
+
+costFunction <- function(theta, X, y){
+
+    # compute the cost and gradient for logistic regression
+    n <- length(y)
+    h <- sigmoid(X %*% theta)
+    cPos <- -t(y) %*% log(h)
+    cNeg <- t(1 - y) %*% log(1 - h)
+    J <- as.vector((1/n) * (cPos - cNeg))
+    grad <- (1/n) * (t(X) %*% (h - y))
+    list(cost=J, grad=grad)
+
+}
+cf <- function(theta, X, y){
+    n <- length(y)
+    h <- sigmoid(X %*% theta)
+    cPos <- as.vector(-t(y) %*% log(h))
+    cNeg <- as.vector(t(1 - y) %*% log(1 - h))
+    J <- (1/n) * (cPos - cNeg)
+    J
+}
+
+gradientFun <- function(theta, X, y){
+    n <- length(y)
+    h <- sigmoid(X %*% theta)
+    grad <- (1/n) * (t(X) %*% (h - y))
+    grad
+}
+
+X <- dat[, 1:2]
+y <- dat[, 3]
+X <- as.matrix(cbind(1, X))
+
+theta <- rep(0, ncol(X))
+
+costFunction(theta, X, y)
+cf(theta, X, y)
+
+```
+
+# optimization in R
+
+```{r}
+
+res <- nlminb(theta, cf, gradientFun, X=X, y=y, control=list(maxit=4000, trace=1))
+cat("the final cost is: ", res$objective, "\n")
+cat("the parameter for theta is: ", res$par, "\n")
+
+```
+
+# plot the decision boundary
+
+```{r}
+slope <- -res$par[2]/res$par[3]
+intercept <- -res$par[1]/res$par[3]
+op <- par(mar = par()$mar + c(bottom, left, top, right), bty = "l")
+plot(dat[pos, 1], dat[pos, 2], col = "black", pch=3, xlim=c(30, 100), ylim=c(30, 100), xlab="Exam 1 score", ylab="Exam 2 score", lwd=2)
+points(dat[!pos, 1], dat[!pos, 2], bg="yellow", pch=21, lwd=2)
+abline(a=intercept, b=slope, col="blue")
+legend("topright", legend=c("Admitted", "Not admitted"), pt.bg=c("black", "yellow"), pch=c(3, 21))
+par(op)
+
+```
+
+## Evaluation the prediction
+
+```{r}
+prob <- sigmoid(as.vector(c(1, 45, 85) %*% res$par))
+prob
+predictClassProb <- function(theta, X){
+    sigmoid(X %*% theta)
+}
+probs <- as.vector(predictClassProb(res$par, X))
+probs <- ifelse(probs > 0.5, 1, 0)
+acc <- table(probs, y)
+cat("The predict accuracy is ", 100 * sum(diag(acc)) / sum(acc), "%.\n", sep="")
+```
+
+# Regularized logistic regression
+
+```{r}
+dat <- read.table("./mlclass-ex2/ex2data2.txt", sep=",")
+pos <- dat[, 3] == 1
+op <- par(mar = par()$mar + c(bottom, left, top, right), bty = "l")
+plot(dat[pos, 1], dat[pos, 2], col = "black", pch=3, xlim=c(-1, 1.5), ylim=c(-0.8, 1.2), xlab="Exam 1 score", ylab="Exam 2 score", lwd=2)
+points(dat[!pos, 1], dat[!pos, 2], bg="yellow", pch=21, lwd=2)
+legend("topright", legend=c("y = 1", "y = 0"), pt.bg=c("black", "yellow"), pch=c(3, 21))
+par(op)
+```
+
+```{r}
+mapFeature <- function(X1, X2){
+    # two single features
+    n <- 6
+    m <- matrix(1, nrow=length(X1), ncol=1)
+    for (i in 1:n){
+        for (j in 0:i){
+            m <- cbind(m, X1^(i - j) * X2^(j))
+        }
+    }
+    m
+}
+
+costFunReg <- function(theta, X, y, lambda){
+    n <- length(y)
+    costs <- cf(theta, X, y)
+    theta.filter <- c(0, theta[-1])
+    costs <- costs + (lambda / (2*n)) * as.vector(t(theta.filter) %*% theta.filter)
+    costs
+}
+gradientFunReg <- function(theta, X, y, lambda){
+    n <- length(y)
+    grad <- gradientFun(theta, X, y)
+    theta.filter <- c(0, theta[-1])
+    grad <- grad + (lambda / n) * theta.filter
+    grad
+}
+
+# initiation
+X <- dat[, 1:2]
+y <- dat[, 3]
+X <- mapFeature(X[, 1], X[, 2])
+theta <- rep(0, ncol(X))
+lambda <- 1
+costFunReg(theta, X, y, lambda)
+
+res <- nlminb(theta, costFunReg, gradientFunReg, X=X, y=y, lambda = lambda, control=list(maxit=4000, trace=1))
+
+getIntInterval <- function(x){
+    x <- range(x)
+    x[1] <- floor(x[1])
+    x[2] <- ceiling(x[2])
+    x
+}
+
+plotRegBoundry <- function(theta, X1, X2, y, lambda, ...){
+
+    pos <- y == 1
+    op <- par(mar = par()$mar + c(0, 0, 0, 2), bty = "l")
+    plot(X1[pos], X2[pos], col = "black", pch=3,
+         xlim=getIntInterval(X1),
+         ylim=getIntInterval(X2),
+         lwd=2,
+         main=paste0("lambda = ", lambda),
+         ...)
+    points(X1[!pos], X2[!pos], bg="yellow", pch=21, lwd=2)
+    legend("topright", legend=c("y = 1", "y = 0"), pt.bg=c("black", "yellow"), pch=c(3, 21))
+
+    u <- getIntInterval(X1)
+    v <- getIntInterval(X2)
+    u <- seq(u[1], u[2], length.out=50)
+    v <- seq(v[1], v[2], length.out=50)
+    z <- matrix(0, length(u), length(v))
+    for (i in 1:length(u)){
+        for (j in 1:length(v)){
+            z[i, j] <- mapFeature(u[i], v[j]) %*% theta
+        }
+    }
+
+    # z <- t(z)
+    contour(u, v, z, add=T, lwd=2, col="blue", nlevels=1)
+
+    par(op)
+}
+
+plotRegBoundry(res$par, dat[, 1], dat[, 2], y, lambda,
+               xlab="Microchip Test 1", ylab="Microchip Test 2"
+               )
+
+op <- par(mfrow=c(2, 2))
+for (lambda in c(0, 1, 50, 100)){
+    res <- nlminb(theta, costFunReg, gradientFunReg,
+                  X=X, y=y, lambda = lambda,
+                  control=list(maxit=4000))
+    plotRegBoundry(res$par, dat[, 1], dat[, 2], y, lambda,
+                   xlab="Microchip Test 1", ylab="Microchip Test 2")
+}
+par(op)
+
+```
