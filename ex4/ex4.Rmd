@@ -1,0 +1,159 @@
+```{r, echo=F}
+require("knitr")
+opts_chunk$set(comment=NA, out.format="html")
+```
+
+## back propagation algorithm to learn the parameters for neural network
+
+## display the sample data
+
+```{r}
+# source("displayData.r")
+source("./loadFun.r")
+require("R.matlab")
+dat <- readMat("./mlclass-ex4/ex4data1.mat")
+displayData(dat$X[sample(1:5000, 100),])
+```
+
+## feedforward with no regularization
+
+```{r}
+nn.weights <- readMat("./mlclass-ex4/ex4weights.mat")
+inputLayerSize <- 400
+hiddenLayerSize <- 25
+numLabel <- 10
+lambda <- 0
+X <- dat$X
+y <- dat$y
+nnPara <- c(nn.weights$Theta1, nn.weights$Theta2)
+
+J <- nnCostFun(nnPara, inputLayerSize, hiddenLayerSize, numLabel,
+               X, y, lambda)
+J
+
+lambda <- 1
+J <- nnCostFun(nnPara, inputLayerSize, hiddenLayerSize, numLabel,
+               X, y, lambda)
+J
+
+# sigmoidgradient test
+sigmoidGradient(c(1, -0.5, 0, 0.5, 1));
+
+```
+
+## initial random thetas
+
+```{r}
+
+
+# backpropagation begin
+
+## check gradients
+debugInitilizeWeights <- function(l.out, l.in){
+
+    w <- matrix(0, nrow=l.out, ncol=1 + l.in)
+
+    w <- array(sin(1:length(w)), dim(w)) / 10
+
+    w
+
+}
+
+computeNumericalGradient <- function(J, theta){
+
+    numGrad <- rep(0, length(theta))
+    perturb <- numGrad
+    e <- 1e-4
+
+    for (i in 1:length(perturb)){
+
+        perturb[i] <- e
+        loss1 <- J(theta - perturb)
+        loss2 <- J(theta + perturb)
+
+        numGrad[i] <- (loss2 - loss1) / (2*e)
+        perturb[i] <- 0
+    }
+
+    numGrad
+}
+
+checkNNGradients <- function(lambda=NULL){
+
+    if (is.null(lambda)) lambda <- 0
+
+    inputLayerSize <- 3
+    hiddenLayerSize <- 5
+    numLabel <- 3
+    m <- 5
+
+    theta1.test <- debugInitilizeWeights(hiddenLayerSize, inputLayerSize)
+    theta2.test <- debugInitilizeWeights(numLabel, hiddenLayerSize)
+
+    X <- debugInitilizeWeights(m, inputLayerSize - 1)
+    y <- 1 + (1:m) %/% numLabel
+
+    nnPara.test <- c(theta1.test, theta2.test)
+
+    costsFun <- function(p) nnCostFun(p, inputLayerSize, hiddenLayerSize, numLabel,
+                                      X, y, lambda)
+
+    grads <- nnGradFun(nnPara.test, inputLayerSize, hiddenLayerSize, numLabel,
+                       X, y, lambda)
+
+    numgrad <- c(computeNumericalGradient(costsFun, nnPara.test))
+
+    print("the gradients comparison is:")
+    print(cbind(numgrad, grads))
+
+    diffs <- norm(matrix(numgrad - grads)) / norm(matrix(numgrad + grads))
+
+    sprintf("Relative Difference: %s", format(diffs, 5))
+
+}
+
+lambda <- 3
+checkNNGradients(lambda)
+
+## training neural network
+
+theta1.init <- randInitializeWeights(inputLayerSize, hiddenLayerSize)
+theta2.init <- randInitializeWeights(hiddenLayerSize, numLabel)
+
+# unroll parameters
+thetaVec <- c(theta1.init, theta2.init)
+
+lambda <- .8
+res <- nlminb(thetaVec, nnCostFun, nnGradFun,
+              inputLayerSize=inputLayerSize,
+              hiddenLayerSize=hiddenLayerSize,
+              numLabel=numLabel,
+              X=X, y=y, lambda=lambda, control=list(maxit=500))
+              # X=X, y=y, lambda=lambda, control=list(maxit=500, trace=T))
+
+theta1 <- array(res$par[1:(hiddenLayerSize * (1 + inputLayerSize))],
+                c(hiddenLayerSize, 1 + inputLayerSize))   # 25 * 401
+theta2 <- array(res$par[(1 + (hiddenLayerSize * (1 + inputLayerSize))):length(res$par)],
+                c(numLabel, hiddenLayerSize + 1))         # 10 * 26
+
+displayData(theta1[, -1])
+
+predictNN <- function(theta1, theta2, X){
+
+    m <- nrow(theta1)
+    numLabel <- nrow(theta2)
+
+    p <- matrix(0, nrow=m, ncol=1)
+    h1 <- sigmoid(cbind(1, X) %*% t(theta1))
+    h2 <- sigmoid(cbind(1, h1) %*% t(theta2))
+
+    apply(h2, 1, which.max)
+
+}
+
+pred <- predictNN(theta1, theta2, X)
+acc <- table(pred, y)
+
+sprintf("the accuracy is %s%%", format(sum(diag(acc))/sum(acc) * 100, 5))
+
+```
